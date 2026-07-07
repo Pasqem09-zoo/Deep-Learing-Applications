@@ -1,29 +1,47 @@
 """
-This module defines neural network architectures used in the project.
+Neural network architectures used in the reinforcement learning experiments.
 
-Currently contains:
-- PolicyNet: a simple feedforward network that outputs action probabilities
-  given a state, used for policy gradient methods like REINFORCE.
-- You can add more architectures here as needed, such as value networks for
-  actor-critic methods, or more complex policy networks for larger environments.
+This module defines:
+- PolicyNet: a policy network that maps a state to action probabilities. 
+  It is used as the policy in both REINFORCE and A2C.
+- ValueNet: a value network that maps a state to a scalar value
+  estimate V(s). It is used as a learned baseline in REINFORCE and as the
+  critic in A2C.
 """
 
-import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 
-# A simple, but generic, policy network with one hidden layer.
-### ci serve un approssimatore della policy quindi usiamo una rete neurale! 
+#Simple feedforward policy network to approximate the policy. Given a state, it outputs a probability distribution over the available discrete actions.
 class PolicyNet(nn.Module):
-    def __init__(self, state_dim, action_dim, hidden_dim=128): ### prende l'ambiente per capire la dimensione dello spazio di osservazione e di azione
+    def __init__(self, state_dim, action_dim, hidden_dim=32):
         super().__init__()
-        
-        self.fc1 = nn.Linear(state_dim, hidden_dim) ###in input qualsiasi tipo di dato xk pernde la sua shape, quindi ha 4 valori: un tensore di 4 dimensioni, e un hidden layer con 128 neuroni
-        self.fc2 = nn.Linear(hidden_dim, action_dim) ### produce esattamente il numero di output necessari che in questo caso sono due azioni: spostare a sn o a dx
 
-    def forward(self, x): 
+        self.fc1 = nn.Linear(state_dim, hidden_dim) # maps the input state to a hidden representation
+        self.fc2 = nn.Linear(hidden_dim, action_dim) # produces one score for each possible action
+
+    def forward(self, x):
         x = F.relu(self.fc1(x))
+
+        # Softmax converts action scores into action probabilities
         action_probs = F.softmax(self.fc2(x), dim=-1)
         return action_probs
+
+
+
+# Baseline value network to approximate the state value function. Given a state, it outputs a scalar estimate of the state value V(s).
+# With baseline we can compute the advantage and reduce the variance of the policy gradient estimate in REINFORCE with baseline.
+class ValueNet(nn.Module):
+    def __init__(self, state_dim, hidden_dim=32):
+      super().__init__()
+
+      self.fc1 = nn.Linear(state_dim, hidden_dim) # maps the input state to a hidden representation
+      self.fc2 = nn.Linear(hidden_dim, 1) # produces a single scalar value representing the estimated value of the input state
+
+    def forward(self, x):
+      x = F.relu(self.fc1(x))
+      value = self.fc2(x)
+      return value

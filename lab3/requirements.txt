@@ -1,5 +1,6 @@
 gymnasium
 torch
 numpy
-matplotlib
 pyyaml
+wandb
+gymnasium[box2d]
